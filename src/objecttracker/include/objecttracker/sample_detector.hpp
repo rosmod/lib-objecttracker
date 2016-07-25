@@ -43,7 +43,8 @@ public:
 	// Main Real-Time Loop
   DetectedObject run( Mat& image,
 		      Mat& maskOutput,
-		      const char* fname = "");
+		      const char* fname = "",
+		      bool writeImages = false);
 
 private:
 	// Webcam feed

@@ -116,7 +116,7 @@ Mat equalizeIntensity(const Mat& inputImage)
     return Mat();
 }
 
-vector<RotatedRect> hsv_method(Mat &image, Mat& imgMask) {
+vector<RotatedRect> hsv_method(Mat &image, Mat& imgMask, bool writeImages) {
 
   //  std::cout << "SAMPLE_DETECTOR::Starting YCrCb METHOD" << std::endl;
 
@@ -131,35 +131,41 @@ vector<RotatedRect> hsv_method(Mat &image, Mat& imgMask) {
 	  Scalar(hue_max, saturation_max, value_max),
 	  hsv_filtered_image);
   
-  cv::imwrite("Sample-YCrCb-Threshold.png", hsv_filtered_image);
+  if (writeImages)
+    cv::imwrite("Sample-YCrCb-Threshold.png", hsv_filtered_image);
 
   // Erode and Dilate
   obj_tracker.filter(hsv_filtered_image, hsv_erode_size, hsv_dilate_size);
 	
-  cv::imwrite("Sample-YCrCb-Filtered.png", hsv_filtered_image);
+  if (writeImages)
+    cv::imwrite("Sample-YCrCb-Filtered.png", hsv_filtered_image);
 
   //  std::cout << "SAMPLE_DETECTOR::Completed YCrCb METHOD" << std::endl;
 
   return obj_tracker.track(image,hsv_filtered_image,imgMask);
 }
 
-vector<RotatedRect> grayscale_method(Mat& image, Mat& imgMask) {
+vector<RotatedRect> grayscale_method(Mat& image, Mat& imgMask, bool writeImages) {
 
   //  std::cout << "SAMPLE_DETECTOR::Starting Grayscale METHOD" << std::endl;
 
   cvtColor(image, grayscale_image, CV_BGR2GRAY);
   Mat eq_gray;
   equalizeHist(grayscale_image,eq_gray);
-  cv::imwrite("Sample-04-Grayscale.png", grayscale_image);
-  cv::imwrite("Sample-Grayscale-equalized.png", eq_gray);
+  if (writeImages) {
+    cv::imwrite("Sample-04-Grayscale.png", grayscale_image);
+    cv::imwrite("Sample-Grayscale-equalized.png", eq_gray);
+  }
 
   threshold(eq_gray, grayscale_filtered_image, min_grayscale_thresh, max_grayscale_thresh, 0);
-  cv::imwrite("Sample-05-Grayscale-Threshold.png", grayscale_filtered_image);
+  if (writeImages)
+    cv::imwrite("Sample-05-Grayscale-Threshold.png", grayscale_filtered_image);
 
   // Erode and Dilate
   obj_tracker.filter(grayscale_filtered_image, grayscale_erode_size, grayscale_dilate_size);
 	
-  cv::imwrite("Sample-06-Grayscale-Filtered.png", grayscale_filtered_image);
+  if (writeImages)
+    cv::imwrite("Sample-06-Grayscale-Filtered.png", grayscale_filtered_image);
 
   //  std::cout << "SAMPLE_DETECTOR::Completed Grayscale METHOD" << std::endl;
 
@@ -169,27 +175,29 @@ vector<RotatedRect> grayscale_method(Mat& image, Mat& imgMask) {
 // Main Real-Time Loop
 DetectedObject Sample_Detector::run( Mat& image, 
 				     Mat& maskOutput,
-				     const char* fname)
+				     const char* fname,
+				     bool writeImages)
 {
   DetectedObject object;
   object.state = HIDDEN;
 
   Mat hsvMask = Mat::zeros(image.size(), CV_8UC3);
   Mat grayMask = Mat::zeros(image.size(), CV_8UC3);
-  vector<RotatedRect> hsv_tracked_objects = hsv_method(image, hsvMask);
-  vector<RotatedRect> gray_tracked_objects = grayscale_method(image, grayMask);
+  vector<RotatedRect> hsv_tracked_objects = hsv_method(image, hsvMask, writeImages);
+  vector<RotatedRect> gray_tracked_objects = grayscale_method(image, grayMask, writeImages);
   vector<RotatedRect> tracked_objects;
 
   if ( hsv_tracked_objects.size() > 0 && gray_tracked_objects.size() > 0 )
     {
       Mat AND_image;
       bitwise_and(hsv_filtered_image, grayscale_filtered_image, AND_image);
-      cv::imwrite("Sample-07-Bitwise-AND-Filtered.png", AND_image);
+      if (writeImages)
+	cv::imwrite("Sample-07-Bitwise-AND-Filtered.png", AND_image);
 
       Mat bitwise_and_tracked;
       tracked_objects = obj_tracker.track(image, AND_image, maskOutput);
-      cv::imwrite("Sample-08-Bitwise-AND-Tracked.png", maskOutput);
-      std::cout << "OBJECT FOUND!!!!!" << std::endl;
+      if (writeImages)
+	cv::imwrite("Sample-08-Bitwise-AND-Tracked.png", maskOutput);
     } else if ( hsv_tracked_objects.size() > 0 )
     {
       tracked_objects = hsv_tracked_objects;
